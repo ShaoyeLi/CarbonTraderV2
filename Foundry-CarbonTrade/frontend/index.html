@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CarbonTrader 前端调试面板</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- 使用 CDN 版本 ethers v6（去掉 integrity，避免哈希不匹配被拦截） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <h1>CarbonTrader 碳积分竞拍平台（本地测试版）</h1>
+
+      <!-- 顶部导航：模拟真实 DApp 的页面结构 -->
+      <nav class="top-nav">
+        <button class="nav-btn active" data-view-target="market">市场</button>
+        <button class="nav-btn" data-view-target="my-auctions">我的拍卖</button>
+        <button class="nav-btn" data-view-target="my-bids">我的出价</button>
+        <button class="nav-btn" data-view-target="assets">资产中心</button>
+        <button class="nav-btn" id="nav-admin" data-view-target="admin">管理员后台</button>
+      </nav>
+
+      <!-- 资产中心 / 全局连接区 -->
+      <section class="card" data-view="all">
+        <h2>1. 连接钱包（MetaMask）</h2>
+        <p>请先在 MetaMask 中添加本地 Anvil 网络，例如默认的 <code>http://127.0.0.1:8545</code>（如果你用 <code>anvil --port 8545</code> 启动），并导入 Anvil 给你的账户私钥。端口号要与 Anvil 实际启动时的端口保持一致。</p>
+        <button id="btn-connect-wallet">连接 MetaMask 钱包</button>
+        <div id="wallet-info"></div>
+      </section>
+
+      <section class="card" data-view="assets">
+        <h2>1.1 本地账户列表（来自当前钱包）</h2>
+        <p>列出当前浏览器钱包中可用的账户地址，方便复制和查看余额。</p>
+        <button id="btn-load-accounts">刷新账户列表</button>
+        <div id="accounts-list"></div>
+      </section>
+
+      <section class="card" data-view="assets">
+        <h2>1.2 账户中控台（ETH / 代币 / 碳积分）</h2>
+        <p>基于当前钱包中导入的地址，查看每个账户的 ETH、USDT、碳积分余额以及已结算待提现金额。</p>
+        <button id="btn-refresh-dashboard">刷新中控台</button>
+        <div id="dashboard"></div>
+      </section>
+
+      <section class="card" data-view="assets">
+        <h2>2. 填写合约地址</h2>
+        <p>先用 <code>forge script</code> 部署脚本（下面说明），然后把控制台输出的地址粘贴到这里：</p>
+        <div class="field">
+          <label>CarbonTrader 合约地址</label>
+          <input id="input-carbon-address" placeholder="0x..." />
+        </div>
+        <div class="field">
+          <label>USDT(ERC20Mock) 代币地址</label>
+          <input id="input-token-address" placeholder="0x..." />
+        </div>
+        <div class="field">
+          <label>代币兑换合约地址 (TokenSale)</label>
+          <input id="input-sale-address" placeholder="0x..." />
+        </div>
+        <button id="btn-connect-contracts">连接合约</button>
+        <div id="contract-info"></div>
+      </section>
+
+      <section class="card" data-view="assets">
+        <h2>3. 获取竞标代币（ETH → USDT）</h2>
+        <p>这里模拟真实流程：用户用本地 ETH 兑换项目中的竞标代币 USDT，再用 USDT 参与拍卖。</p>
+        <div class="field">
+          <label>支付的 ETH 数量</label>
+          <input id="input-buy-eth-amount" type="number" value="0.1" />
+        </div>
+        <button id="btn-buy-tokens">用 ETH 购买 USDT</button>
+        <pre id="buy-result" class="log"></pre>
+      </section>
+
+      <section class="card" data-view="assets">
+        <h2>4. ERC20 代币操作（余额 / 手动授权）</h2>
+        <div class="field">
+          <label>查询余额的地址</label>
+          <input id="input-erc20-balance-address" placeholder="留空则为当前账户" />
+        </div>
+        <button id="btn-erc20-balance">查询 USDT 余额</button>
+        <pre id="erc20-balance-result" class="log"></pre>
+
+        <hr />
+
+        <div class="field">
+          <label>approve 给 CarbonTrader 的 USDT 数量（人类可读，如 1000）</label>
+          <input id="input-erc20-approve-amount" type="number" value="1000" />
+        </div>
+        <button id="btn-erc20-approve">对 CarbonTrader 合约授权（approve）</button>
+        <pre id="erc20-approve-result" class="log"></pre>
+      </section>
+
+      <!-- 管理员后台 -->
+      <section class="card" data-role="owner" data-view="admin">
+        <h2>4. 管理员功能（Owner 调用）</h2>
+        <p>请使用部署合约的那个账户（即 Owner）连接钱包。</p>
+        <div class="field">
+          <label>发行碳积分给地址</label>
+          <input id="input-issue-address" placeholder="0x..." />
+        </div>
+        <div class="field">
+          <label>发行数量（碳积分，整数）</label>
+          <input id="input-issue-amount" type="number" value="1000" />
+        </div>
+        <button id="btn-issue-allowance">发行碳积分 (issueAllowance)</button>
+
+        <hr />
+
+        <div class="field">
+          <label>查询/冻结/解冻/销毁的用户地址</label>
+          <input id="input-admin-user" placeholder="0x..." />
+        </div>
+        <div class="field">
+          <label>操作数量（用于冻结/解冻/销毁部分）</label>
+          <input id="input-admin-amount" type="number" value="100" />
+        </div>
+        <div class="buttons-row">
+          <button id="btn-get-allowance">查询可用碳积分 getAllowance</button>
+          <button id="btn-get-frozen">查询冻结碳积分 getFrozenAllowance</button>
+        </div>
+        <div class="buttons-row">
+          <button id="btn-freeze">冻结 freezeAllowance</button>
+          <button id="btn-unfreeze">解冻 unfreezeAllowance</button>
+        </div>
+        <div class="buttons-row">
+          <button id="btn-destroy-part">销毁部分 destroyAllowance</button>
+          <button id="btn-destroy-all">销毁全部 destroyAllAllowance</button>
+        </div>
+        <hr />
+        <h3>费率与名单管理</h3>
+        <div class="field">
+          <label>平台手续费（基点，100 = 1%，最大 1000 = 10%）</label>
+          <input id="input-fee-bps" type="number" value="100" />
+        </div>
+        <button id="btn-set-fee">调整手续费 setFeeBasisPoints</button>
+        <div class="field">
+          <label>白名单开关（仅白名单参与模式）</label>
+          <label class="switch">
+            <input type="checkbox" id="toggle-whitelist" />
+            <span class="slider"></span>
+          </label>
+          <span id="whitelist-status" class="small-muted"></span>
+        </div>
+        <div class="field">
+          <label>名单管理地址（复用上面的用户地址输入框）</label>
+          <p style="font-size: 12px; color: #9ca3af;">
+            使用上方“查询/冻结/解冻/销毁的用户地址”输入框作为地址来源。
+          </p>
+        </div>
+        <div class="buttons-row">
+          <button id="btn-add-whitelist">加入白名单</button>
+          <button id="btn-remove-whitelist">移出白名单</button>
+        </div>
+        <div class="buttons-row">
+          <button id="btn-add-blacklist">加入黑名单</button>
+          <button id="btn-remove-blacklist">移出黑名单</button>
+        </div>
+        <pre id="admin-result" class="log"></pre>
+      </section>
+
+      <!-- 卖家视图：我的拍卖 -->
+      <section class="card" data-role="seller" data-view="my-auctions">
+        <h2>5. 创建交易（卖家调用 createTrade）</h2>
+        <p>卖家需要先通过 Owner 发行碳积分，然后 Owner 冻结一部分给这个卖家。</p>
+        <div class="field">
+          <label>交易 ID（字符串，例如 trade_001）</label>
+          <input id="input-trade-id" value="trade_001" />
+        </div>
+        <div class="field">
+          <label>总碳积分数量 amount</label>
+          <input id="input-trade-amount" type="number" value="1000" />
+        </div>
+        <div class="field">
+          <label>单价 priceOfUnit（以 USDT 计价，整数）</label>
+          <input id="input-trade-price" type="number" value="1" />
+        </div>
+        <div class="field">
+          <label>开始时间 (unix 时间戳，秒)。为空则使用当前时间</label>
+          <input id="input-trade-start-time" />
+        </div>
+        <div class="field">
+          <label>结束时间 (unix 时间戳，秒)。为空则使用当前时间 + 1 天</label>
+          <input id="input-trade-end-time" />
+        </div>
+        <button id="btn-create-trade">创建交易 createTrade</button>
+        <button id="btn-get-trade">查询该交易 getTrade</button>
+        <hr />
+        <h3>价格设置（保留价 / 一口价）</h3>
+        <div class="field">
+          <label>保留价 reservePrice（USDT，总价，0 表示不设置）</label>
+          <input id="input-reserve-price" type="number" value="0" />
+        </div>
+        <div class="field">
+          <label>一口价 buyNowPrice（USDT，总价，0 表示不设置）</label>
+          <input id="input-buynow-price" type="number" value="0" />
+        </div>
+        <p class="small-muted">
+          提示：上面的保留价和一口价会在点击“创建交易”时自动写入链上。
+          如果想在挂单之后单独修改价格，可以使用下面的按钮：
+        </p>
+        <button id="btn-set-trade-prices">修改保留价 / 一口价（可选）</button>
+        <pre id="trade-result" class="log"></pre>
+      </section>
+
+      <!-- 买家视图：我的出价 -->
+      <section class="card" data-role="buyer" data-view="my-bids">
+        <h2>6. 买家出价 / 订单详情</h2>
+        <p id="bid-auction-summary" class="small-muted">请选择市场中的一笔交易后，这里会展示详细信息。</p>
+        <p>出价总金额必须大于当前最高出价。出价金额会锁定在合约中，若被别人超价可随时退款。</p>
+        <div class="field">
+          <label>交易 ID</label>
+          <input id="input-deposit-trade-id" value="trade_001" />
+        </div>
+        <div class="field">
+          <label>出价总金额（USDT，人类可读，例如 100）</label>
+          <input id="input-deposit-amount" type="number" value="100" />
+        </div>
+        <button id="btn-deposit">提交出价 deposit</button>
+        <button id="btn-get-deposit">查询自己押金 getDeposit</button>
+        <button id="btn-refund">退款 refund</button>
+        <button id="btn-buynow">一口价购买 buyNow</button>
+        <pre id="deposit-result" class="log"></pre>
+      </section>
+
+      <section class="card" data-role="seller buyer" data-view="my-auctions">
+        <h2>8. 成交 / 提现</h2>
+        <p>拍卖结束后（当前时间 >= endTime），由卖家/管理员/任何人触发成交，自动选最高出价者；卖家之后可以提现。</p>
+        <div class="field">
+          <label>交易 ID</label>
+          <input id="input-finalize-trade-id" value="trade_001" />
+        </div>
+        <button id="btn-finalize">成交并转移碳积分 finalizeAuctionAndTransferCarbon</button>
+        <button id="btn-withdraw">卖家提现 withdrawAuctionAmount</button>
+        <pre id="finalize-result" class="log"></pre>
+      </section>
+
+      <!-- 市场视图 -->
+      <section class="card" data-view="market">
+        <h2>9. 市场：所有已创建的交易 & 出价</h2>
+        <p>基于 <code>NewTrade</code> 和 <code>BidPlaced</code> 事件构建，只会包含部署后新创建的交易。管理员可以一键批量结算所有已结束的交易。</p>
+        <button id="btn-refresh-market">刷新市场</button>
+        <button id="btn-batch-finalize">批量结算已结束交易（Owner）</button>
+        <div id="market-list"></div>
+      </section>
+
+      <!-- 全局日志 -->
+      <section class="card" data-view="all">
+        <h2>日志</h2>
+        <pre id="global-log" class="log"></pre>
+      </section>
+    </div>
+
+    <script src="./main.js"></script>
+  </body>
+</html>

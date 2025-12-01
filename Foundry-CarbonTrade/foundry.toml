@@ -1,0 +1,14 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.24"  # ← Change from 0.8.12 to 0.8.24
+
+remappings = [
+    "openzeppelin-contracts/=lib/openzeppelin-contracts/"
+]
+
+# 允许脚本读写 deployments 目录，用于将部署结果导出为 JSON
+fs_permissions = [
+    { access = "read-write", path = "./deployments" }
+]

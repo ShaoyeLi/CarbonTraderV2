@@ -1,0 +1,281 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  background: #0f172a;
+  color: #e5e7eb;
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+h1 {
+  margin-bottom: 16px;
+}
+
+.top-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.nav-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #e5e7eb;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.nav-btn.active {
+  background: #22c55e;
+  color: #020617;
+  border-color: #22c55e;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  margin-right: 8px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #111827;
+  border-radius: 24px;
+  transition: 0.2s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #e5e7eb;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.switch input:checked + .slider {
+  background-color: #22c55e;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.small-muted {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.market-item h3 {
+  cursor: pointer;
+}
+
+section.card {
+  background: #020617;
+  border-radius: 8px;
+  padding: 16px 16px 18px;
+  margin-bottom: 16px;
+  border: 1px solid #1f2937;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+p {
+  margin: 4px 0 8px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.field {
+  margin: 8px 0;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #e5e7eb;
+}
+
+input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 14px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #22c55e;
+}
+
+button {
+  cursor: pointer;
+  padding: 6px 12px;
+  margin: 4px 4px 4px 0;
+  border-radius: 4px;
+  border: none;
+  background: #22c55e;
+  color: #020617;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+button:hover {
+  background: #16a34a;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttons-row {
+  margin: 4px 0;
+}
+
+.log {
+  background: #020617;
+  border-radius: 4px;
+  border: 1px solid #111827;
+  padding: 8px;
+  font-size: 12px;
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+code {
+  background: #111827;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+#wallet-info,
+#contract-info {
+  font-size: 13px;
+  margin-top: 4px;
+  color: #e5e7eb;
+}
+
+.roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.roles label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#accounts-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #020617;
+  border: 1px solid #111827;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.account-row span {
+  font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+.account-row button {
+  flex: 0 0 auto;
+}
+
+#market-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+
+#dashboard {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+  border: 1px solid #1f2937;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.dashboard-table th {
+  background: #020617;
+}
+
+.market-item {
+  border: 1px solid #1f2937;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #020617;
+}
+
+.market-item h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.market-bids {
+  margin-top: 4px;
+  padding-left: 12px;
+}
