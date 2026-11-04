@@ -12,3 +12,8 @@ docs/
 
 # Dotenv file
 .env
+
+# OS and local tooling
+.DS_Store
+node_modules/
+dist/

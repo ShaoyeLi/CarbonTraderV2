@@ -1,71 +1,81 @@
-## Testnet Demo Account
+# CarbonTraderV2
 
-This repo ships with a **public Sepolia test account** so anyone can try the full system end‑to‑end. Do **not** send any real assets to it.
+A full-stack carbon-credit auction prototype built with Solidity, Foundry, React, and ethers.js. The project models the complete asset path from issuing carbon allowances, freezing credits for a listing, collecting ERC-20 bids, settling an auction, and letting participants withdraw or reclaim funds.
 
-- Network: **Sepolia**
-- Test account private key (for demo only):  
-  `50a1978d6fca900d0ea122307860b26b33f8eb8fb57d68fb66975d75e1834a05`
-- Notes:
-  - This account is pre‑granted about 1000 carbon credits (allowance) in `CarbonTrader` so you can create and settle auctions.
-  - The key is intentionally public and **must never** be reused outside of testnets.
-  - Import it into MetaMask / Rabby as an additional account and switch the network to Sepolia before using the dApp.
+This repository is a portfolio and learning project. It demonstrates contract state design and failure-path testing; it is not an audited production carbon market.
 
-### Suggested Quick Demo Flow
+## What the system implements
 
-1. **Import the demo account**
-   - In your wallet (MetaMask / Rabby), choose “Import account” and paste the test private key.
-   - Switch network to **Sepolia** and make sure you have a small amount of test ETH for gas.
+- Carbon-credit balances with issue, destroy, freeze, and unfreeze operations.
+- Auction creation with start price, reserve price, buy-now price, and end time.
+- ERC-20 deposits, bidding, settlement, bidder refunds, and seller withdrawals.
+- Whitelist and blacklist controls plus configurable platform fees.
+- Pull-based withdrawals so settlement does not depend on an immediate external payment.
+- A React interface for market listings, account balances, bidding, refunds, and administration.
 
-2. **Run or open the frontend**
-   - Local:
-     ```bash
-     cd carbontrader-prime
-     npm install
-     npm run dev
-     ```
-     Then visit `http://localhost:5173` (or the URL Vite prints).
-   - Or open the Vercel deployment URL for this repo.
+## Core transaction flow
 
-3. **Connect your wallet**
-   - Click `Connect Wallet` on the landing page and connect the imported Sepolia account.
+```text
+Admin issues credits
+        |
+Seller creates auction -> credits move from available to frozen
+        |
+Buyer approves ERC-20 -> deposits bid into the contract
+        |
+Auction finalizes
+        |
+        +-> winning buyer receives carbon credits
+        +-> losing bidders reclaim deposits
+        +-> seller withdraws proceeds
+        +-> platform fee remains accounted for
+```
 
-4. **Get USDT (bid token)**
-   - Go to `Dashboard` → in the `USDT Balance` card click `Top Up`.
-   - In the `Acquire USDT` modal:
-     - Either send a small `Amount of ETH to Spend` via `Swap ETH for USDT` (`TokenSale.buyTokens()`), or
-     - Click `Claim Daily Faucet` to call `TokenFaucet.claim()` and receive 1000 test USDT once every 24h.
+The main invariant is that available credits, frozen credits, deposits, and withdrawable proceeds change together with the auction state. A failed or cancelled path must not create credits or strand bidder funds.
 
-5. **Create an auction (seller)**
-   - Switch to `Market` → `New Listing`.
-   - A `Trade ID` like `CT-100001` is auto‑generated.
-   - Fill:
-     - `Amount (Credits)` – amount of carbon credits to list (e.g. `100`).
-     - `Starting Total Price (USDT)` – total starting ask (e.g. `1000`).
-     - Optional: `Reserve Price (Total USDT)` and `Buy Now Price (Total USDT)`.
-   - Click `Create Listing` and wait for confirmation. The auction card will appear in `Market`.
+## Architecture
 
-6. **Bid and settle**
-   - With a second Sepolia account as **buyer**:
-     - Connect that account, go to `Market`, choose the auction, click `Place Bid` and enter your total bid (USDT).
-     - If a buy‑now price is set, you can click `Buy Now` to settle immediately.
-   - As **seller**:
-     - If the auction is still running with at least one bid, click `End Auction Now` (or use `Dashboard → My Auctions → End Early`) to call `sellerFinalizeEarly`.
-     - After end time with a highest bid, click `Settle Auction` to call `finalizeAuctionAndTransferCarbon`.
+```text
+React / Vite dApp
+      |
+   ethers.js
+      |
+CarbonTrader + ERC20Mock + TokenSale + TokenFaucet
+      |
+Foundry tests and deployment scripts
+```
 
-7. **Refunds & withdrawals**
-   - Buyers:
-     - Use `Dashboard → My Bids` and click `Refund Deposit` on lost / finalized / reserve‑not‑met auctions to get back your deposit.
-   - Sellers:
-     - In `Dashboard`, the `Pending Revenue` card shows withdrawable USDT. Click `Claim` to call `withdrawAuctionAmount()`.
+- `Foundry-CarbonTrade/src/CarbonTraderStorage.sol`: storage, events, errors, access rules, and account controls.
+- `Foundry-CarbonTrade/src/CarbonTrader.sol`: allowance and auction business logic.
+- `Foundry-CarbonTrade/src/TokenSale.sol`: test ETH-to-token acquisition flow.
+- `Foundry-CarbonTrade/src/TokenFaucet.sol`: rate-limited test-token faucet.
+- `carbontrader-prime/`: the primary React client.
+- `frontend/`: an earlier interface retained as a reference implementation.
 
-8. **Admin features (optional)**
-   - Connect with the contract owner account (`owner()` of `CarbonTrader`) to see the `Admin` tab.
-   - There you can:
-     - Issue/destroy carbon credits.
-     - Manage whitelist / blacklist & toggle whitelist mode.
-     - Configure platform fee basis points.
-     - Batch finalize ended trades.
-     - Use the Accounts Console to inspect ETH/USDT/carbon/frozen/withdrawable balances for any set of addresses.
+## Verification
+
+The Foundry suite exercises both state transitions and failure paths, including:
+
+- issuing, freezing, unfreezing, and destroying allowances;
+- preventing unauthorized allowance destruction;
+- creating auctions and recording seller state;
+- ERC-20 approval, deposits, refunds, and contract balances;
+- time-dependent finalization and transfer of carbon credits.
+
+Run the contract checks with:
+
+```bash
+cd Foundry-CarbonTrade
+forge build
+forge test -vv
+```
+
+## Security and scope
+
+- No private key is distributed in this repository.
+- Use a fresh local Anvil account or a dedicated Sepolia test account that never holds real assets.
+- Keep `.env`, RPC credentials, and deployment keys outside version control.
+- The mock token, faucet, and testnet deployment are development aids, not production financial infrastructure.
+- The contracts have not undergone an independent security audit.
 
 ---
 
